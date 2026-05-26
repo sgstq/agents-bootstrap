@@ -1,0 +1,8 @@
+[project]
+name = "agents-bootstrap"
+version = "0.1.0"
+description = "Bootstrap mirrored agent guidance files into repositories."
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 120
