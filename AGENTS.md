@@ -1,42 +1,19 @@
-# Agent Instructions
+# agents-bootstrap Maintainer Guide
 
-These instructions describe how AI coding agents should work in this repository.
+This repository builds mirrored agent guidance files for other repositories.
 
-## Clarify Before Acting
-- Ask questions when the request, current behavior, or desired behavior is unclear.
-- State assumptions before implementation.
-- If a simpler approach exists, mention it before choosing a larger one.
+## Source Of Truth
+- Do not hard-code default instruction text in `agents_bootstrap.py`.
+- Default guidance lives in `sets/defaults/*.md`.
+- Set metadata lives in `sets/defaults/metadata.json`.
+- The Python script should only detect repository state, select blocks, render files, print diffs, and write manifests.
 
-## Planning First
-- Do not implement code changes until the user explicitly asks with words like "implement", "build it", "go ahead", or similar.
-- When the user asks a question, answer the question only. Do not make code changes unless explicitly asked.
-- For multi-step work, give a short plan with verification steps before editing.
+## Generated Output
+- Target repositories receive `AGENTS.md`, `CLAUDE.md`, and `.agents/manifest.json`.
+- `AGENTS.md` and `CLAUDE.md` must remain mirrored unless the user explicitly asks for agent-specific differences.
+- Do not add proposed/history folders to target repositories. Proposed changes should be shown as diffs, not written as extra repo noise.
 
-## Simplicity
-- Make the smallest change that solves the stated problem.
-- Do not add speculative features, unused abstractions, or configurability that was not requested.
-- Keep every changed line traceable to the user request.
-
-## Surgical Changes
-- Touch only the files needed for the task.
-- Match the existing style even if you would normally write it differently.
-- Do not refactor adjacent code or delete unrelated dead code unless asked.
-- Preserve user changes and never revert work you did not make without explicit approval.
-
-## Code Safety
-- Fix root causes. Do not hide errors with broad try/catch, sleeps, ignored type errors, or placeholder returns.
-- Do not submit TODO, FIXME, placeholder comments, mock implementations, or incomplete code unless the user explicitly asks for a draft.
-- Before creating a new helper, schema, builder, or utility, search for an existing implementation and reuse it when appropriate.
-
-## Verification
-- Define success criteria before changing code.
-- Run the smallest relevant validation command after changes.
-- If validation cannot be run, explain why and describe the remaining risk.
-
-## Python
-- Prefer the Python version configured by the repository, such as `pyproject.toml`, `.python-version`, or `mise.toml`.
-- If the repo uses `uv`, manage dependencies with `uv`; do not edit dependency files by hand.
-- Use the repository virtual environment when one exists.
-- Put imports at the top of the file unless there is a clear local pattern requiring otherwise.
-- Do not use `cast`, `# type: ignore`, or `# noqa` to silence tooling without explicit approval.
-- Add or update focused tests when changing behavior.
+## Development
+- Keep the implementation dependency-free unless there is a clear reason to add packaging.
+- Run `python -m unittest discover -s tests` after changes.
+- Add or update tests when changing rendering, detection, manifest, or CLI behavior.

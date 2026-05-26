@@ -78,6 +78,39 @@ class AgentsBootstrapTests(unittest.TestCase):
             self.assertIn("## Additional Reference", agents)
             self.assertIn("## Local Rule", agents)
 
+    def test_custom_set_path_is_used(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            repo = base / "repo"
+            custom_set = base / "custom-set"
+            repo.mkdir()
+            custom_set.mkdir()
+            custom_set.joinpath("metadata.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "name": "custom-set",
+                        "core": "core.md",
+                        "languageBlocks": {
+                            "python": "python.md",
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            custom_set.joinpath("core.md").write_text("# Custom Core\n", encoding="utf-8")
+            custom_set.joinpath("python.md").write_text("## Python\n- Custom Python rule.\n", encoding="utf-8")
+            repo.joinpath("pyproject.toml").write_text("[project]\nname = \"demo\"\n", encoding="utf-8")
+
+            result = self.run_cli(repo, "init", "--yes", "--set", str(custom_set))
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            agents = repo.joinpath("AGENTS.md").read_text(encoding="utf-8")
+            manifest = json.loads(repo.joinpath(".agents/manifest.json").read_text(encoding="utf-8"))
+            self.assertIn("# Custom Core", agents)
+            self.assertIn("- Custom Python rule.", agents)
+            self.assertEqual(manifest["set"], str(custom_set))
+
     def test_check_reports_missing_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo = Path(temp_dir)
@@ -90,4 +123,3 @@ class AgentsBootstrapTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

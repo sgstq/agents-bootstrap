@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "defaults",
+  "description": "Default mirrored agent guidance blocks.",
+  "core": "core.md",
+  "languageBlocks": {
+    "python": "python.md",
+    "typescript": "typescript.md"
+  }
+}

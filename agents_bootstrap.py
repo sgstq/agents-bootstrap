@@ -16,6 +16,9 @@ from urllib.request import urlopen
 
 VERSION = "0.1.0"
 PACKAGE_NAME = "agents-bootstrap"
+ROOT = Path(__file__).resolve().parent
+SETS_DIR = ROOT / "sets"
+DEFAULT_SET = "defaults"
 DEFAULT_AGENTS = ("codex", "claude")
 INSTRUCTION_FILES = {
     "codex": "AGENTS.md",
@@ -39,66 +42,10 @@ SKIP_DIRS = {
 }
 
 
-CORE_RULES = """# Agent Instructions
-
-These instructions describe how AI coding agents should work in this repository.
-
-## Clarify Before Acting
-- Ask questions when the request, current behavior, or desired behavior is unclear.
-- State assumptions before implementation.
-- If a simpler approach exists, mention it before choosing a larger one.
-
-## Planning First
-- Do not implement code changes until the user explicitly asks with words like "implement", "build it", "go ahead", or similar.
-- When the user asks a question, answer the question only. Do not make code changes unless explicitly asked.
-- For multi-step work, give a short plan with verification steps before editing.
-
-## Simplicity
-- Make the smallest change that solves the stated problem.
-- Do not add speculative features, unused abstractions, or configurability that was not requested.
-- Keep every changed line traceable to the user request.
-
-## Surgical Changes
-- Touch only the files needed for the task.
-- Match the existing style even if you would normally write it differently.
-- Do not refactor adjacent code or delete unrelated dead code unless asked.
-- Preserve user changes and never revert work you did not make without explicit approval.
-
-## Code Safety
-- Fix root causes. Do not hide errors with broad try/catch, sleeps, ignored type errors, or placeholder returns.
-- Do not submit TODO, FIXME, placeholder comments, mock implementations, or incomplete code unless the user explicitly asks for a draft.
-- Before creating a new helper, schema, builder, or utility, search for an existing implementation and reuse it when appropriate.
-
-## Verification
-- Define success criteria before changing code.
-- Run the smallest relevant validation command after changes.
-- If validation cannot be run, explain why and describe the remaining risk.
-"""
-
-
-PYTHON_RULES = """## Python
-- Prefer the Python version configured by the repository, such as `pyproject.toml`, `.python-version`, or `mise.toml`.
-- If the repo uses `uv`, manage dependencies with `uv`; do not edit dependency files by hand.
-- Use the repository virtual environment when one exists.
-- Put imports at the top of the file unless there is a clear local pattern requiring otherwise.
-- Do not use `cast`, `# type: ignore`, or `# noqa` to silence tooling without explicit approval.
-- Add or update focused tests when changing behavior.
-"""
-
-
-TYPESCRIPT_RULES = """## TypeScript
-- Use the package manager already used by the repository.
-- Do not edit dependency manifests by hand to add packages; use the package manager command.
-- Avoid `any`; use precise types, `unknown`, or generics.
-- Avoid type assertions. Fix the underlying types instead.
-- Let TypeScript infer obvious callback and local variable types.
-- Remove unused parameters instead of prefixing or ignoring them unless the existing codebase clearly does otherwise.
-"""
-
-
 @dataclass(frozen=True)
 class RenderedInstructions:
     content: str
+    set_name: str
     languages: list[str]
     references: list[str]
 
@@ -114,6 +61,10 @@ def read_text(path: Path) -> str:
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def load_json(path: Path) -> dict[str, object]:
+    return json.loads(read_text(path))
 
 
 def detect_languages(repo: Path) -> list[str]:
@@ -154,14 +105,69 @@ def load_reference(reference: str, repo: Path) -> tuple[str, str]:
     return str(path), read_text(path).strip()
 
 
-def render_instructions(repo: Path, references: list[str], languages: list[str] | None) -> RenderedInstructions:
-    detected_languages = detect_languages(repo) if languages is None else languages
-    sections = [CORE_RULES.strip()]
+def resolve_set_dir(set_name: str) -> Path:
+    set_dir = Path(set_name).expanduser()
+    if not set_dir.is_absolute():
+        set_dir = SETS_DIR / set_name
+    if not set_dir.exists():
+        raise SystemExit(f"Instruction set does not exist: {set_dir}")
+    return set_dir
 
-    if "python" in detected_languages:
-        sections.append(PYTHON_RULES.strip())
-    if "typescript" in detected_languages:
-        sections.append(TYPESCRIPT_RULES.strip())
+
+def load_set_metadata(set_name: str) -> tuple[Path, dict[str, object]]:
+    set_dir = resolve_set_dir(set_name)
+    metadata_path = set_dir / "metadata.json"
+    if not metadata_path.exists():
+        raise SystemExit(f"Instruction set is missing metadata.json: {set_dir}")
+    return set_dir, load_json(metadata_path)
+
+
+def metadata_string(metadata: dict[str, object], key: str) -> str:
+    value = metadata.get(key)
+    if not isinstance(value, str) or not value:
+        raise SystemExit(f"Instruction set metadata must define string field: {key}")
+    return value
+
+
+def language_blocks(metadata: dict[str, object]) -> dict[str, str]:
+    value = metadata.get("languageBlocks")
+    if not isinstance(value, dict):
+        raise SystemExit("Instruction set metadata must define object field: languageBlocks")
+
+    blocks = {}
+    for language, filename in value.items():
+        if not isinstance(language, str) or not isinstance(filename, str):
+            raise SystemExit("Instruction set languageBlocks must map strings to strings")
+        blocks[language] = filename
+    return blocks
+
+
+def load_set_sections(set_name: str, languages: list[str]) -> tuple[str, list[str]]:
+    set_dir, metadata = load_set_metadata(set_name)
+    core_file = metadata_string(metadata, "core")
+    blocks = language_blocks(metadata)
+    sections = [read_text(set_dir / core_file).strip()]
+    included_languages = []
+
+    for language in languages:
+        block_file = blocks.get(language)
+        if block_file is None:
+            continue
+        sections.append(read_text(set_dir / block_file).strip())
+        included_languages.append(language)
+
+    return "\n\n".join(sections), included_languages
+
+
+def render_instructions(
+    repo: Path,
+    set_name: str,
+    references: list[str],
+    languages: list[str] | None,
+) -> RenderedInstructions:
+    detected_languages = detect_languages(repo) if languages is None else languages
+    set_content, included_languages = load_set_sections(set_name, detected_languages)
+    sections = [set_content]
 
     loaded_references = []
     for reference in references:
@@ -171,7 +177,8 @@ def render_instructions(repo: Path, references: list[str], languages: list[str] 
 
     return RenderedInstructions(
         content="\n\n".join(sections).strip() + "\n",
-        languages=detected_languages,
+        set_name=set_name,
+        languages=included_languages,
         references=loaded_references,
     )
 
@@ -203,7 +210,7 @@ def load_manifest(repo: Path) -> dict[str, object] | None:
     path = manifest_path(repo)
     if not path.exists():
         return None
-    return json.loads(read_text(path))
+    return load_json(path)
 
 
 def write_manifest(repo: Path, manifest: dict[str, object]) -> None:
@@ -212,6 +219,7 @@ def write_manifest(repo: Path, manifest: dict[str, object]) -> None:
 
 def installed_manifest(
     agents: list[str],
+    set_name: str,
     languages: list[str],
     references: list[str],
     files: dict[str, str],
@@ -224,6 +232,7 @@ def installed_manifest(
         "status": "installed",
         "version": VERSION,
         "source": source,
+        "set": set_name,
         "agents": agents,
         "languages": languages,
         "references": references,
@@ -276,7 +285,7 @@ def init_repo(args: argparse.Namespace) -> int:
     instruction_files = selected_instruction_files(agents)
 
     languages = None if args.languages == "auto" else [item.strip() for item in args.languages.split(",") if item.strip()]
-    rendered = render_instructions(repo, args.reference, languages)
+    rendered = render_instructions(repo, args.set, args.reference, languages)
 
     if args.decline:
         write_manifest(repo, declined_manifest(args.source))
@@ -302,6 +311,7 @@ def init_repo(args: argparse.Namespace) -> int:
             repo,
             installed_manifest(
                 agents=agents,
+                set_name=rendered.set_name,
                 languages=rendered.languages,
                 references=rendered.references,
                 files=files,
@@ -343,6 +353,7 @@ def init_repo(args: argparse.Namespace) -> int:
             repo,
             installed_manifest(
                 agents=agents,
+                set_name=rendered.set_name,
                 languages=rendered.languages,
                 references=rendered.references,
                 files=files,
@@ -361,6 +372,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser = subparsers.add_parser("init", help="Create or update agent guidance files.")
     init_parser.add_argument("--repo", default=".", help="Repository path. Defaults to current directory.")
+    init_parser.add_argument("--set", default=DEFAULT_SET, help="Instruction set name or path. Defaults to 'defaults'.")
     init_parser.add_argument("--agents", default="codex,claude", help="Comma-separated agents: codex,claude.")
     init_parser.add_argument("--languages", default="auto", help="Comma-separated languages or 'auto'.")
     init_parser.add_argument("--reference", action="append", default=[], help="Extra local file or URL to inline.")

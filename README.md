@@ -4,6 +4,8 @@ Personal bootstrap for repository agent guidance.
 
 This project does not claim to provide universal best practices. It installs the agent rules that currently work for this workflow, in a thin format that modern coding agents can read without extra history or noise.
 
+The default guidance is stored as Markdown blocks under `sets/defaults/`. The Python script only detects repository state, renders the selected blocks, shows diffs, and writes files.
+
 ## What It Writes
 
 By default, `agents-bootstrap` writes:
@@ -22,6 +24,27 @@ The installer detects repository languages and includes only relevant language s
 - TypeScript: `package.json`, `tsconfig.json`, lockfiles, or `*.ts` / `*.tsx`
 
 For monorepos, v1 uses one root mirrored pair and includes every detected language section.
+
+## Instruction Sets
+
+The default set is:
+
+```text
+sets/defaults/
+  core.md
+  python.md
+  typescript.md
+  metadata.json
+```
+
+Edit these Markdown files to change generated guidance. Do not hard-code guidance text in `agents_bootstrap.py`.
+
+Use another set by passing a set name or path:
+
+```bash
+python /path/to/agents-bootstrap/agents_bootstrap.py init --repo . --set defaults
+python /path/to/agents-bootstrap/agents_bootstrap.py init --repo . --set /path/to/custom-set
+```
 
 ## Agent-Run Usage
 
@@ -88,6 +111,7 @@ Installed state:
   "agents": ["codex", "claude"],
   "package": "agents-bootstrap",
   "schemaVersion": 1,
+  "set": "defaults",
   "status": "installed",
   "updatePolicy": "ask",
   "version": "0.1.0"
@@ -115,3 +139,4 @@ Run tests:
 python -m unittest discover -s tests
 ```
 
+This repository's own `AGENTS.md` and `CLAUDE.md` are maintainer guidance for this tool. They are not generated examples of target-repository output.
