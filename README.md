@@ -6,6 +6,11 @@ This project does not claim to provide universal best practices. It installs the
 
 The default guidance is stored as Markdown blocks under `sets/defaults/`. The Python script only detects repository state, renders the selected blocks, shows diffs, and writes files.
 
+### Warning ☠️
+<p align="center">
+  <b>ALL CODE AND SCRIPTS IN THIS REPOSITORY—EVEN THOSE BASED ON REAL DOCUMENTATION—ARE ENTIRELY EXPERIMENTAL. ALL LOGIC WAS HALLUCINATED BY MATRIX MULTIPLICATIONS….. HAPHAZARDLY. THE FOLLOWING REPOSITORY CONTAINS UNTESTED CODE AND DUE TO ITS CONTENT IT SHOULD NOT BE USED ANYWHERE BY ANYONE ■</b>
+</p>
+
 ## What It Writes
 
 By default, `agents-bootstrap` writes:
