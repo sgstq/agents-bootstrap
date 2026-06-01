@@ -119,7 +119,7 @@ Installed state:
   "set": "defaults",
   "status": "installed",
   "updatePolicy": "ask",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
 ```
 
@@ -130,7 +130,7 @@ Declined state:
   "package": "agents-bootstrap",
   "schemaVersion": 1,
   "status": "declined",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
 ```
 

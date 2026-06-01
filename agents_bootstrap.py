@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 PACKAGE_NAME = "agents-bootstrap"
 ROOT = Path(__file__).resolve().parent
 SETS_DIR = ROOT / "sets"
