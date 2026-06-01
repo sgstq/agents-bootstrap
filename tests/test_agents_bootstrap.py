@@ -37,6 +37,8 @@ class AgentsBootstrapTests(unittest.TestCase):
             self.assertEqual(agents, claude)
             self.assertIn("## Python", agents)
             self.assertNotIn("## TypeScript", agents)
+            self.assertIn("## Phased Development", agents)
+            self.assertIn("## Constraints And Dependencies", agents)
             self.assertEqual(manifest["status"], "installed")
             self.assertEqual(manifest["languages"], ["python"])
 
