@@ -17,6 +17,21 @@ These instructions describe how AI coding agents should work in this repository.
 - Do not add speculative features, unused abstractions, or configurability that was not requested.
 - Keep every changed line traceable to the user request.
 
+## Phased Development
+- Keep the full roadmap in view in every phase, not just the current task.
+- Before building, classify each decision as foundational or local.
+- Foundational decisions — schemas, storage formats, public interfaces, module and directory structure, core abstractions, dependency and version choices — are ones later phases depend on. Choose what they can extend without a rewrite.
+- Local decisions are contained in this phase and cheap to swap. Keep them minimal.
+- Decision test: "Would the simplest version now force a later phase to rewrite or work around it?" If yes, treat it as foundational and design for the roadmap. If no, keep it simple.
+- This refines Simplicity rather than contradicting it: build only the features the current phase needs and leave future features unbuilt, but still get the foundational interfaces right.
+- When the simplest path for this phase would block or complicate a later one, stop and flag it. Name the conflict, propose the alternative, give cost-now versus rewrite-cost-later, and let the user choose.
+
+## Constraints And Dependencies
+- Treat explicit prompt instructions and anything marked `confirmed limitation`, including a deliberately pinned version, as hard requirements. Follow them.
+- Treat unmarked documented constraints and the project's current dependency versions as defaults, not fixed givens.
+- When a different choice would materially help the current phase or roadmap — an end-of-life runtime, a setting that blocks a roadmap requirement, or a newer library version with a feature you would otherwise hand-build or work around — raise it before implementing the workaround. State what is limiting us, what the change unlocks, and its rough cost and risk, then let the user choose.
+- Trigger only on a concrete benefit tied to what we are building. Leave routine upgrades alone and follow ordinary choices without comment.
+
 ## Surgical Changes
 - Touch only the files needed for the task.
 - Match the existing style even if you would normally write it differently.
