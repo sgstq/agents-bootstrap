@@ -26,6 +26,14 @@ These instructions describe how AI coding agents should work in this repository.
 - This refines Simplicity rather than contradicting it: build only the features the current phase needs and leave future features unbuilt, but still get the foundational interfaces right.
 - When the simplest path for this phase would block or complicate a later one, stop and flag it. Name the conflict, propose the alternative, give cost-now versus rewrite-cost-later, and let the user choose.
 
+## Project Architecture
+- Follow hexagonal architecture principles when adding or changing behavior.
+- Keep business logic in the core domain layer, independent of frameworks, delivery mechanisms, databases, and external services.
+- Keep entry-point adapters thin. HTTP handlers, CLI commands, message consumers, scheduled jobs, and UI actions should translate input, call application services or use cases, and translate output.
+- Do not call databases, external services, framework APIs, or network clients directly from entry-point adapters when that logic belongs in application or infrastructure layers.
+- Keep dependencies pointing inward: domain code must not depend on API, UI, persistence, framework, or infrastructure code. Outer layers may depend on inner layers through stable interfaces.
+- If the codebase does not have formal architecture layers, preserve its existing module boundaries. Add new business rules to the closest core application, service, or model code, and keep adapters such as routes, controllers, CLI handlers, API clients, database wrappers, and UI glue focused on translating inputs and outputs.
+
 ## Constraints And Dependencies
 - Treat explicit prompt instructions and anything marked `confirmed limitation`, including a deliberately pinned version, as hard requirements. Follow them.
 - Treat unmarked documented constraints and the project's current dependency versions as defaults, not fixed givens.
